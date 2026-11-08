@@ -34,6 +34,7 @@ jobs:
         cp index.html www/
         npx cap init SMSApp com.sms.app --web-dir www
         npx cap add android
+        npx cap sync android  # 이 줄을 추가해서 의존성 강제 동기화
 
     - name: Build Android APK
       run: |
