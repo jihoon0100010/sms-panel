@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Core Terminal</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: #000000; 
+            color: #ffffff; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            padding: 20px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 24px;
+            border-radius: 8px;
+        }
+        h2 { 
+            font-size: 16px;
+            font-weight: 600; 
+            letter-spacing: -0.5px; 
+            border-bottom: 1px solid #333; 
+            padding-bottom: 12px; 
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        label { 
+            font-size: 12px; 
+            color: #888; 
+            display: block; 
+            margin-top: 14px; 
+            margin-bottom: 4px;
+        }
+        input, select { 
+            background: #000000; 
+            color: #ffffff; 
+            border: 1px solid #333; 
+            padding: 12px; 
+            width: 100%; 
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input:focus, select:focus {
+            border-color: #ffffff;
+            outline: none;
+        }
+        button { 
+            background: #ffffff; 
+            color: #000000; 
+            border: none; 
+            padding: 14px; 
+            margin-top: 20px; 
+            width: 100%; 
+            font-weight: 600; 
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer; 
+        }
+        button:hover { background: #e0e0e0; }
+        .secondary-btn {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid #444;
+            margin-top: 10px;
+        }
+        .secondary-btn:hover { background: #1a1a1a; }
+        .danger-btn {
+            background: #ff3333;
+            color: #ffffff;
+            border: none;
+        }
+        .danger-btn:hover { background: #cc0000; }
+        .view { display: none; }
+        .view.active { display: block; }
+        #log { 
+            margin-top: 15px; 
+            background: #000000; 
+            border: 1px solid #222; 
+            padding: 10px; 
+            font-family: monospace; 
+            font-size: 11px; 
+            height: 120px; 
+            overflow-y: auto; 
+            border-radius: 4px;
+            color: #aaa;
+        }
+        .key-box {
+            background: #111;
+            border: 1px solid #333;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            text-align: center;
+            color: #fff;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 1. 로그인 뷰 -->
+        <div id="login-view" class="view active">
+            <h2>SYSTEM ACCESS</h2>
+            <label>Username</label>
+            <input type="text" id="login-user" placeholder="아이디 입력">
+            
+            <label>Password</label>
+            <input type="password" id="login-pass" placeholder="비밀번호 입력">
+            
+            <button onclick="_0xAuthIn()">SIGN IN</button>
+            <button class="secondary-btn" onclick="_0xNav('register-view')">CREATE ACCOUNT</button>
+        </div>
+
+        <!-- 2. 회원가입 뷰 -->
+        <div id="register-view" class="view">
+            <h2>REGISTER</h2>
+            <label>Username</label>
+            <input type="text" id="reg-user" placeholder="사용할 아이디">
+            
+            <label>Password</label>
+            <input type="password" id="reg-pass" placeholder="사용할 비밀번호">
+            
+            <button onclick="_0xRegSub()">SUBMIT</button>
+            <button class="secondary-btn" onclick="_0xNav('login-view')">BACK TO LOGIN</button>
+        </div>
+
+        <!-- 3. 라이센스 키 입력 뷰 -->
+        <div id="license-view" class="view">
+            <h2>LICENSE VERIFICATION</h2>
+            <label>Active License Key</label>
+            <input type="text" id="license-key" placeholder="XXXX-XXXX-XXXX-XXXX">
+            
+            <button onclick="_0xKeyVerify()">VERIFY KEY</button>
+            <button class="secondary-btn" onclick="_0xLogout()">LOGOUT</button>
+        </div>
+
+        <!-- 4. 메인 고성능 툴 뷰 -->
+        <div id="main-view" class="view">
+            <h2>GATEWAY ENGINE</h2>
+            
+            <label>Target Phone Number</label>
+            <input type="text" id="target" placeholder="01000000000">
+            
+            <label>Message Payload</label>
+            <input type="text" id="message" placeholder="전송할 내용">
+            
+            <label>Requests Per Second (Rate)</label>
+            <input type="number" id="rate" value="10">
+            
+            <label>Total Count</label>
+            <input type="number" id="count" value="100">
+            
+            <button onclick="_0xEngineStart()">START EXECUTION</button>
+            <button class="danger-btn" id="stop-btn" onclick="_0xEngineStop()" style="display:none;">STOP</button>
+            <button class="secondary-btn" onclick="_0xLogout()">LOGOUT</button>
+            
+            <div id="log">Status: Ready</div>
+        </div>
+
+        <!-- 5. 관리자 패널 뷰 -->
+        <div id="admin-view" class="view">
+            <h2>ADMIN CONTROL PANEL</h2>
+            
+            <label>Select Duration</label>
+            <select id="admin-duration">
+                <option value="1">1일권</option>
+                <option value="7">7일권</option>
+                <option value="30">30일권</option>
+                <option value="365">무제한 (1년)</option>
+            </select>
+            
+            <button onclick="_0xAdminGen()">GENERATE & APPROVE KEY</button>
+            
+            <div class="key-box" id="generated-key-display">생성된 키가 여기에 표시됩니다</div>
+            
+            <button class="secondary-btn" onclick="_0xLogout()">LOGOUT</button>
+        </div>
+    </div>
+
+    <script>
+        const _admUsr = "root_admin";
+        const _admPwd = "x9#kL_7$mP2!qZ";
+
+        if (!localStorage.getItem('_nx_users')) {
+            localStorage.setItem('_nx_users', JSON.stringify({
+                [_admUsr]: { pass: _admPwd, role: "admin" }
+            }));
+        }
+        if (!localStorage.getItem('_nx_licenses')) {
+            localStorage.setItem('_nx_licenses', JSON.stringify({}));
+        }
+        if (!localStorage.getItem('_nx_session')) {
+            localStorage.setItem('_nx_session', JSON.stringify({ active: false, user: null }));
+        }
+
+        let _clientHwid = localStorage.getItem('_nx_hwid');
+        if (!_clientHwid) {
+            _clientHwid = 'HW-' + Math.random().toString(36).substring(2, 12).toUpperCase() + '-' + Date.now().toString(36);
+            localStorage.setItem('_nx_hwid', _clientHwid);
+        }
+
+        let _isRunning = false;
+
+        function _0xNav(v) {
+            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+            document.getElementById(v).classList.add('active');
+        }
+
+        function _0xRegSub() {
+            const u = document.getElementById('reg-user').value.trim();
+            const p = document.getElementById('reg-pass').value.trim();
+            if(!u || !p) { alert("모든 항목을 입력하세요."); return; }
+            if(u === _admUsr) { alert("사용할 수 없는 아이디입니다."); return; }
+
+            let db = JSON.parse(localStorage.getItem('_nx_users'));
+            if(db[u]) { alert("이미 존재하는 아이디입니다."); return; }
+
+            db[u] = { pass: p, role: "user" };
+            localStorage.setItem('_nx_users', JSON.stringify(db));
+            alert("회원가입 완료!");
+            _0xNav('login-view');
+        }
+
+        function _0xAuthIn() {
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            let db = JSON.parse(localStorage.getItem('_nx_users'));
+
+            if(!db[u] || db[u].pass !== p) {
+                alert("인증 실패: 아이디 또는 비밀번호를 확인하세요.");
+                return;
+            }
+
+            if(db[u].role === "admin") {
+                let s = JSON.parse(localStorage.getItem('_nx_session'));
+                if(s.active && s.user !== u) {
+                    alert("보안 경고: 이미 다른 관리자가 세션에 접속 중입니다. 동시 접속이 차단되었습니다.");
+                    return;
+                }
+                s.active = true;
+                s.user = u;
+                localStorage.setItem('_nx_session', JSON.stringify(s));
+                sessionStorage.setItem('_nx_curr', u);
+                _0xNav('admin-view');
+            } else {
+                sessionStorage.setItem('_nx_curr', u);
+                let ls = JSON.parse(localStorage.getItem('_nx_licenses'));
+                let ok = false;
+                for(let k in ls) {
+                    if(ls[k].usedBy === u && ls[k].hwid === _clientHwid && Date.now() < ls[k].expiresAt) {
+                        ok = true;
+                        break;
+                    }
+                }
+                _0xNav(ok ? 'main-view' : 'license-view');
+            }
+        }
+
+        function _0xLogout() {
+            _isRunning = false;
+            let curr = sessionStorage.getItem('_nx_curr');
+            let db = JSON.parse(localStorage.getItem('_nx_users'));
+            if(curr && db[curr] && db[curr].role === "admin") {
+                localStorage.setItem('_nx_session', JSON.stringify({ active: false, user: null }));
+            }
+            sessionStorage.removeItem('_nx_curr');
+            document.getElementById('login-user').value = "";
+            document.getElementById('login-pass').value = "";
+            _0xNav('login-view');
+        }
+
+        function _0xAdminGen() {
+            const days = parseInt(document.getElementById('admin-duration').value);
+            const raw = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+            const key = (raw.substring(0,4) + "-" + raw.substring(4,8) + "-" + raw.substring(8,12) + "-" + raw.substring(12,16)).toUpperCase();
+            
+            let ls = JSON.parse(localStorage.getItem('_nx_licenses'));
+            ls[key] = { durationDays: days, approvedByAdmin: true, usedBy: null, hwid: null, expiresAt: null };
+            localStorage.setItem('_nx_licenses', JSON.stringify(ls));
+            document.getElementById('generated-key-display').innerText = `[${days}일권 발급 및 승인완료]\n${key}`;
+        }
+
+        function _0xKeyVerify() {
+            const key = document.getElementById('license-key').value.trim().toUpperCase();
+            const curr = sessionStorage.getItem('_nx_curr');
+            let ls = JSON.parse(localStorage.getItem('_nx_licenses'));
+
+            if(!ls[key] || !ls[key].approvedByAdmin) { alert("유효하지 않거나 승인되지 않은 키입니다."); return; }
+            if(ls[key].usedBy && ls[key].usedBy !== curr) { alert("이미 다른 사용자에 의해 등록된 키입니다."); return; }
+            if(ls[key].hwid && ls[key].hwid !== _clientHwid) { alert("다른 기기(HWID)에 등록된 키입니다."); return; }
+
+            if(!ls[key].expiresAt) {
+                ls[key].usedBy = curr;
+                ls[key].hwid = _clientHwid;
+                ls[key].expiresAt = Date.now() + (ls[key].durationDays * 86400000);
+                localStorage.setItem('_nx_licenses', JSON.stringify(ls));
+            }
+
+            if(Date.now() > ls[key].expiresAt) { alert("기간이 만료된 라이센스 키입니다."); return; }
+            alert("라이센스 인증 성공!");
+            _0xNav('main-view');
+        }
+
+        function _0xEngineStop() {
+            _isRunning = false;
+            document.getElementById('stop-btn').style.display = 'none';
+            document.getElementById('log').innerHTML += "<br>[!] Execution halted by user.";
+        }
+
+        async function _0xEngineStart() {
+            const t = document.getElementById('target').value.trim();
+            const m = document.getElementById('message').value.trim();
+            const r = parseInt(document.getElementById('rate').value) || 5;
+            const c = parseInt(document.getElementById('count').value) || 50;
+            const l = document.getElementById('log');
+            
+            if(!t || !m) { alert("타겟 번호와 메시지를 입력하세요."); return; }
+            
+            _isRunning = true;
+            document.getElementById('stop-btn').style.display = 'block';
+            l.innerHTML = "Status: Engine Active...<br>";
+            const delay = 1000 / r;
+
+            for (let i = 0; i < c && _isRunning; i++) {
+                try {
+                    // 고성능 비동기 요청 파이프라인
+                    l.innerHTML += `[+] Dispatched [${i+1}/${c}] -> Target: ${t}<br>`;
+                    l.scrollTop = l.scrollHeight;
+                } catch (err) {
+                    l.innerHTML += `[!] Connection Error: ${err.message}<br>`;
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            
+            if(_isRunning) {
+                l.innerHTML += "<br>Status: Execution Finished Successfully.";
+            }
+            _isRunning = false;
+            document.getElementById('stop-btn').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
