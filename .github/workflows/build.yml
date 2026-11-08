@@ -1,4 +1,4 @@
-name: Build Android APK (Bulletproof)
+name: Build Android APK (Final Clean Version)
 
 on:
   push:
@@ -23,50 +23,23 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Clean Environment & Install Dependencies
+    - name: Install Tools
       run: |
-        rm -rf ~/.gradle/caches
         npm init -y
         npm install @capacitor/core @capacitor/cli @capacitor/android
 
-    - name: Generate Capacitor Config
-      run: |
-        echo "import { CapacitorConfig } from '@capacitor/cli';" > capacitor.config.ts
-        echo "const config: CapacitorConfig = {" >> capacitor.config.ts
-        echo "  appId: 'com.sms.app'," >> capacitor.config.ts
-        echo "  appName: 'SMSApp'," >> capacitor.config.ts
-        echo "  webDir: 'www'," >> capacitor.config.ts
-        echo "  bundledWebRuntime: false" >> capacitor.config.ts
-        echo "};" >> capacitor.config.ts
-        echo "export default config;" >> capacitor.config.ts
-
-    - name: Setup Web Directory
+    - name: Setup Web Directory & Init Capacitor
       run: |
         mkdir -p www
         cp index.html www/
-
-    - name: Initialize Android Project
-      run: |
+        npx cap init SMSApp com.sms.app --web-dir www
         npx cap add android
-        npx cap sync android
 
-    - name: Nuke Permissions & Optimize Gradle
+    - name: Build Android APK
       run: |
-        mkdir -p ~/.gradle
-        echo "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ~/.gradle/gradle.properties
-        echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
-        echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
-        echo "org.gradle.workers.max=1" >> ~/.gradle/gradle.properties
-        
         cd android
-        chmod -R 777 .
         chmod +x gradlew
-
-    - name: Build Android APK (Clean & Stacktrace)
-      run: |
-        cd android
-        ./gradlew clean
-        ./gradlew assembleDebug --no-daemon --max-workers=1
+        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
