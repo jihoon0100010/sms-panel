@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (Bulletproof)
 
 on:
   push:
@@ -12,15 +12,10 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
+    - name: Set up Node.js 20
       uses: actions/setup-node@v4
       with:
-        node-version: 18
-
-    - name: Initialize Project & Install Capacitor
-      run: |
-        npm init -y
-        npm install @capacitor/core @capacitor/cli @capacitor/android
+        node-version: 20
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -28,30 +23,50 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Initialize Capacitor Android & Wrap HTML
+    - name: Clean Environment & Install Dependencies
+      run: |
+        rm -rf ~/.gradle/caches
+        npm init -y
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+
+    - name: Generate Capacitor Config
+      run: |
+        echo "import { CapacitorConfig } from '@capacitor/cli';" > capacitor.config.ts
+        echo "const config: CapacitorConfig = {" >> capacitor.config.ts
+        echo "  appId: 'com.sms.app'," >> capacitor.config.ts
+        echo "  appName: 'SMSApp'," >> capacitor.config.ts
+        echo "  webDir: 'www'," >> capacitor.config.ts
+        echo "  bundledWebRuntime: false" >> capacitor.config.ts
+        echo "};" >> capacitor.config.ts
+        echo "export default config;" >> capacitor.config.ts
+
+    - name: Setup Web Directory
       run: |
         mkdir -p www
         cp index.html www/
-        npx cap init SMSApp com.sms.app --web-dir www
-        npx cap add android
 
-    - name: Configure Low-Resource Gradle Build
+    - name: Initialize Android Project
+      run: |
+        npx cap add android
+        npx cap sync android
+
+    - name: Nuke Permissions & Optimize Gradle
       run: |
         mkdir -p ~/.gradle
-        echo "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+        echo "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ~/.gradle/gradle.properties
         echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
         echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
         echo "org.gradle.workers.max=1" >> ~/.gradle/gradle.properties
-
-    - name: Fix Permissions
-      run: |
+        
         cd android
+        chmod -R 777 .
         chmod +x gradlew
 
-    - name: Build Android APK
+    - name: Build Android APK (Clean & Stacktrace)
       run: |
         cd android
-        ./gradlew assembleDebug --max-workers=1
+        ./gradlew clean
+        ./gradlew assembleDebug --no-daemon --max-workers=1
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
